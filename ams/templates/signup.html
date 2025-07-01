@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4 fw-bold text-success">Create Your Account</h2>
+                <form method="POST" action="{{ url_for('auth.signup') }}">
+                    <div class="mb-3">
+                        <label for="full_name" class="form-label">Full Name</label>
+                        <input type="text" class="form-control rounded-pill" id="full_name" name="full_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control rounded-pill" id="phone_number" name="phone_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" class="form-control rounded-pill" id="email" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="institution" class="form-label">Institution</label>
+                        <input type="text" class="form-control rounded-pill" id="institution" name="institution" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control rounded-pill" id="password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Select Role</label>
+                        <select class="form-select rounded-pill" id="role" name="role" required>
+                            <option value="" disabled selected>Choose your role...</option>
+                            <option value="Attachee">Attachee</option>
+                            <option value="Supervisor">Supervisor</option>
+                            <option value="Director">Director</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="department" class="form-label">Select Department</label>
+                        <select class="form-select rounded-pill" id="department" name="department" required>
+                            <option value="" disabled selected>Choose your department...</option>
+                            <option value="ICT">ICT</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Planning">Planning</option>
+                            <option value="Human Resource">Human Resource</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Rate the Ministry (1-5 stars)</label>
+                        <div class="rating-stars">
+                            <input type="radio" id="star5" name="ministry_rating" value="5"><label for="star5" title="5 stars">&#9733;</label>
+                            <input type="radio" id="star4" name="ministry_rating" value="4"><label for="star4" title="4 stars">&#9733;</label>
+                            <input type="radio" id="star3" name="ministry_rating" value="3"><label for="star3" title="3 stars">&#9733;</label>
+                            <input type="radio" id="star2" name="ministry_rating" value="2"><label for="star2" title="2 stars">&#9733;</label>
+                            <input type="radio" id="star1" name="ministry_rating" value="1"><label for="star1" title="1 star">&#9733;</label>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">Sign Up</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="text-success fw-bold">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
