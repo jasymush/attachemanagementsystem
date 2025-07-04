@@ -1,0 +1,12 @@
+    {% macro render_field(field, class="", placeholder="") %}
+        <label for="{{ field.id }}" class="form-label">{{ field.label.text }}</label>
+        {{ field(class=class, placeholder=placeholder, **kwargs) }}
+        {% if field.errors %}
+            <div class="invalid-feedback d-block"> {# d-block to make it visible #}
+                {% for error in field.errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endmacro %}
+    

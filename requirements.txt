@@ -1,0 +1,11 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug
+psycopg2-binary
+Flask-Migrate
+Flask-WTF
+WTForms
+Flask-Mail
+email_validator
+itsdangerous

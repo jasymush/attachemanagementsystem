@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-5">
+        <div class="card p-4 shadow-lg rounded-4">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4 fw-bold text-success">Login to AMS</h2>
+                <form method="POST" action="{{ url_for('auth.login') }}" class="needs-validation" novalidate>
+                    {{ form.csrf_token }} {# CSRF Token #}
+                    <div class="mb-3">
+                        {{ render_field(form.email, class="form-control rounded-pill", placeholder="Email Address") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.password, class="form-control rounded-pill", placeholder="Password") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.role, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.department, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3 form-check">
+                        {{ form.remember_me(class="form-check-input") }}
+                        <label class="form-check-label" for="remember_me">{{ form.remember_me.label }}</label>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">Login</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Don't have an account? <a href="{{ url_for('auth.signup') }}" class="text-success fw-bold">Sign Up</a></p>
+                    <p><a href="{{ url_for('auth.forgot_password') }}" class="text-info fw-bold">Forgot Password?</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// JavaScript for Bootstrap form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4 fw-bold text-success">Create Your Account</h2>
+                <form method="POST" action="{{ url_for('auth.signup') }}" class="needs-validation" novalidate>
+                    {{ form.csrf_token }} {# CSRF Token #}
+                    <div class="mb-3">
+                        {{ render_field(form.full_name, class="form-control rounded-pill", placeholder="Full Name") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.phone_number, class="form-control rounded-pill", placeholder="Phone Number") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.email, class="form-control rounded-pill", placeholder="Email Address") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.institution, class="form-control rounded-pill", placeholder="Institution") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.password, class="form-control rounded-pill", placeholder="Password", id="passwordInput") }} {# Added id for JS #}
+                        {# NEW: Password strength feedback display #}
+                        <div id="passwordStrength" class="mt-2 text-sm"></div>
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.confirm_password, class="form-control rounded-pill", placeholder="Confirm Password") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.role, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.department, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">{{ form.ministry_rating.label.text }}</label>
+                        <div class="rating-stars">
+                            {# Manually render radio buttons for custom star styling #}
+                            <input type="radio" id="star5" name="{{ form.ministry_rating.name }}" value="5" {% if form.ministry_rating.data == 5 %}checked{% endif %}><label for="star5" title="5 stars">&#9733;</label>
+                            <input type="radio" id="star4" name="{{ form.ministry_rating.name }}" value="4" {% if form.ministry_rating.data == 4 %}checked{% endif %}><label for="star4" title="4 stars">&#9733;</label>
+                            <input type="radio" id="star3" name="{{ form.ministry_rating.name }}" value="3" {% if form.ministry_rating.data == 3 %}checked{% endif %}><label for="star3" title="3 stars">&#9733;</label>
+                            <input type="radio" id="star2" name="{{ form.ministry_rating.name }}" value="2" {% if form.ministry_rating.data == 2 %}checked{% endif %}><label for="star2" title="2 stars">&#9733;</label>
+                            <input type="radio" id="star1" name="{{ form.ministry_rating.name }}" value="1" {% if form.ministry_rating.data == 1 %}checked{% endif %}><label for="star1" title="1 star">&#9733;</label>
+                        </div>
+                        {% if form.ministry_rating.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.ministry_rating.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">Sign Up</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="text-success fw-bold">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// JavaScript for Bootstrap form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+
+// NEW: Password Strength Indicator
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordStrength = document.getElementById('passwordStrength');
+
+    if (passwordInput && passwordStrength) {
+        passwordInput.addEventListener('input', function() {
+            const password = passwordInput.value;
+            let strength = 0;
+            let feedback = '';
+            let color = '';
+
+            if (password.length > 0) {
+                // Criteria for strength
+                if (password.length >= 8) {
+                    strength += 1; // Length
+                }
+                if (password.match(/[a-z]/) && password.match(/[A-Z]/)) {
+                    strength += 1; // Uppercase and lowercase
+                }
+                if (password.match(/\d/)) {
+                    strength += 1; // Numbers
+                }
+                if (password.match(/[^a-zA-Z0-9]/)) {
+                    strength += 1; // Special characters
+                }
+
+                // Determine feedback and color
+                if (strength === 0) {
+                    feedback = 'Too Short';
+                    color = 'text-danger';
+                } else if (strength <= 2) {
+                    feedback = 'Weak';
+                    color = 'text-danger';
+                } else if (strength === 3) {
+                    feedback = 'Medium';
+                    color = 'text-warning';
+                } else {
+                    feedback = 'Strong';
+                    color = 'text-success';
+                }
+            }
+
+            passwordStrength.textContent = feedback;
+            passwordStrength.className = `mt-2 text-sm ${color}`;
+        });
+    }
+});
+</script>
+{% endblock %}
