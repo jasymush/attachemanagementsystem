@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="mb-4 text-center text-success fw-bold">Welcome, {{ current_user.full_name }} ({{ current_user.role }})!</h1>
+
+{% if user_role == 'Attachee' %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="dashboard-section card p-4 mb-4 rounded-4">
+            <h3 class="mb-3 text-primary">Submit a Report</h3>
+            <form method="POST" action="{{ url_for('main.submit_report') }}" class="needs-validation" novalidate>
+                {# Assuming form object is passed to this template as well for WTForms #}
+                {{ form.csrf_token }} 
+                <div class="mb-3">
+                    <label for="report_type" class="form-label">Report Type</label>
+                    {{ form.report_type(class="form-select rounded-pill", onchange="toggleReportFields()") }}
+                    {% if form.report_type.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.report_type.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="absentDaysFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        {{ form.start_date(class="form-control rounded-pill") }}
+                        {% if form.start_date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.start_date.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">End Date</label>
+                        {{ form.end_date(class="form-control rounded-pill") }}
+                        {% if form.end_date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.end_date.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Absence</label>
+                        {{ form.reason(class="form-control rounded-3", rows="3") }}
+                        {% if form.reason.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.reason.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="complaintRecommendationFields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        {{ form.subject(class="form-control rounded-pill", placeholder="Subject") }}
+                        {% if form.subject.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.subject.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="details" class="form-label">Details</label>
+                    {{ form.details(class="form-control rounded-3", rows="5", placeholder="Details of your report...") }}
+                    {% if form.details.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.details.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill">Submit Report</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="dashboard-section card p-4 mb-4 rounded-4">
+            <h3 class="mb-3 text-primary">Your Submitted Reports</h3>
+            {% if attachee_reports %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover rounded-3 overflow-hidden">
+                    <thead class="bg-success text-white">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Subject/Reason</th>
+                            <th scope="col">Details</th>
+                            <th scope="col">Date Submitted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in attachee_reports %}
+                        <tr>
+                            <th scope="row">{{ loop.index }}</th>
+                            <td>{{ report.report_type | replace('_', ' ') | title }}</td>
+                            <td>
+                                {% if report.report_type == 'absent_days' %}
+                                    {{ report.start_date }} to {{ report.end_date }} ({{ report.reason }})
+                                {% else %}
+                                    {{ report.subject }}
+                                {% endif %}
+                            </td>
+                            <td>{{ report.details }}</td>
+                            <td>{{ report.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted">You have not submitted any reports yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleReportFields() {
+        // Safely get the element, it might not exist on all dashboard views
+        const reportTypeElement = document.getElementById('report_type');
+        if (!reportTypeElement) {
+            return; // Exit if the element is not found
+        }
+        const reportType = reportTypeElement.value;
+        const absentDaysFields = document.getElementById('absentDaysFields');
+        const complaintRecommendationFields = document.getElementById('complaintRecommendationFields');
+
+        // Ensure elements exist before trying to access their style
+        if (absentDaysFields) {
+            absentDaysFields.style.display = 'none';
+        }
+        if (complaintRecommendationFields) {
+            complaintRecommendationFields.style.display = 'none';
+        }
+
+        if (reportType === 'absent_days') {
+            if (absentDaysFields) {
+                absentDaysFields.style.display = 'block';
+            }
+        } else if (reportType === 'complaint' || reportType === 'recommendation') {
+            if (complaintRecommendationFields) {
+                complaintRecommendationFields.style.display = 'block';
+            }
+        }
+    }
+
+    // JavaScript for Bootstrap form validation
+    (function () {
+      'use strict'
+      var forms = document.querySelectorAll('.needs-validation')
+      Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+          }, false)
+        })
+    })()
+
+    // Call on page load to set initial state if form is re-rendered with errors
+    document.addEventListener('DOMContentLoaded', toggleReportFields);
+</script>
+
+{% elif user_role in ['Supervisor', 'Director'] %}
+<div class="row">
+    <div class="col-12">
+        <div class="dashboard-section card p-4 mb-4 rounded-4">
+            <h3 class="mb-3 text-primary">Search Users & Reports</h3>
+            <form method="GET" action="{{ url_for('main.dashboard') }}" class="mb-3">
+                <div class="input-group rounded-pill overflow-hidden">
+                    <input type="text" class="form-control border-0" placeholder="Search by name, email, institution, report details..." name="search_query" value="{{ search_query if search_query else '' }}">
+                    <button class="btn btn-success" type="submit">
+                        <i class="fas fa-search me-1"></i> Search
+                    </button>
+                    {% if search_query %}
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Clear Search</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dashboard-section card p-4 mb-4 rounded-4">
+            <h3 class="mb-3 text-primary">All Users</h3>
+            {% if paginated_users.items %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover rounded-3 overflow-hidden">
+                    <thead class="bg-success text-white">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Full Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Role</th>
+                            <th scope="col">Department</th>
+                            <th scope="col">Institution</th>
+                            <th scope="col">Ministry Rating</th>
+                            <th scope="col">Status</th> {# NEW: Status Column #}
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in paginated_users.items %}
+                        <tr>
+                            <th scope="row">{{ (paginated_users.page - 1) * paginated_users.per_page + loop.index }}</th>
+                            <td>{{ user.full_name }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>{{ user.department }}</td>
+                            <td>{{ user.institution }}</td>
+                            <td>
+                                {% for _ in range(user.ministry_rating) %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% endfor %}
+                                {% for _ in range(5 - user.ministry_rating) %}
+                                    <i class="far fa-star text-secondary"></i>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('main.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-primary rounded-pill me-1">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                {% if user.id != current_user.id %} {# Prevent deleting own account #}
+                                <form action="{{ url_for('main.delete_user', user_id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user and all their associated reports? This action cannot be undone.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill me-1">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {# NEW: Activate Button #}
+                                {% if not user.is_active %}
+                                    {% if (current_user.role in ['Supervisor', 'Director'] and current_user.department == 'ICT') or (current_user.department == user.department) %}
+                                    <form action="{{ url_for('main.activate_user', user_id=user.id, users_page=paginated_users.page, reports_page=paginated_reports.page, search_query=search_query) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to activate this user?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-pill">
+                                            <i class="fas fa-check-circle"></i> Activate
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                {% endif %}
+                                {# END NEW #}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {# Pagination controls for Users #}
+            <nav aria-label="Users Pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not paginated_users.has_prev %}disabled{% endif %}">
+                        <a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', users_page=paginated_users.prev_num, search_query=search_query, reports_page=paginated_reports.page) }}">Previous</a>
+                    </li>
+                    {% for page_num in paginated_users.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if paginated_users.page == page_num %}
+                                <li class="page-item active"><a class="page-link rounded-pill mx-1" href="#">{{ page_num }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', users_page=page_num, search_query=search_query, reports_page=paginated_reports.page) }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link rounded-pill mx-1" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not paginated_users.has_next %}disabled{% endif %}">
+                        <a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', users_page=paginated_users.next_num, search_query=search_query, reports_page=paginated_reports.page) }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+            {% else %}
+            <p class="text-muted">No users found {% if user_role == 'Supervisor' %}in your department{% endif %}.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dashboard-section card p-4 mb-4 rounded-4">
+            <h3 class="mb-3 text-primary">All Reports</h3>
+            {% if paginated_reports.items %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover rounded-3 overflow-hidden">
+                    <thead class="bg-success text-white">
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Attachee</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Subject/Reason</th>
+                            <th scope="col">Details</th>
+                            <th scope="col">Date Submitted</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in paginated_reports.items %}
+                        <tr>
+                            <th scope="row">{{ (paginated_reports.page - 1) * paginated_reports.per_page + loop.index }}</th>
+                            <td>{{ report.author.full_name }}</td>
+                            <td>{{ report.report_type | replace('_', ' ') | title }}</td>
+                            <td>
+                                {% if report.report_type == 'absent_days' %}
+                                    {{ report.start_date }} to {{ report.end_date }} ({{ report.reason }})
+                                {% else %}
+                                    {{ report.subject }}
+                                {% endif %}
+                            </td>
+                            <td>{{ report.details }}</td>
+                            <td>{{ report.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <form action="{{ url_for('main.delete_report', report_id=report.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this report?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {# Pagination controls for Reports #}
+            <nav aria-label="Reports Pagination">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item {% if not paginated_reports.has_prev %}disabled{% endif %}">
+                        <a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', reports_page=paginated_reports.prev_num, search_query=search_query, users_page=paginated_users.page) }}">Previous</a>
+                    </li>
+                    {% for page_num in paginated_reports.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                        {% if page_num %}
+                            {% if paginated_reports.page == page_num %}
+                                <li class="page-item active"><a class="page-link rounded-pill mx-1" href="#">{{ page_num }}</a></li>
+                            {% else %}
+                                <li class="page-item"><a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', reports_page=page_num, search_query=search_query, users_page=paginated_users.page) }}">{{ page_num }}</a></li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><a class="page-link rounded-pill mx-1" href="#">...</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not paginated_reports.has_next %}disabled{% endif %}">
+                        <a class="page-link rounded-pill mx-1" href="{{ url_for('main.dashboard', reports_page=paginated_reports.next_num, search_query=search_query, users_page=paginated_users.page) }}">Next</a>
+                    </li>
+                </ul>
+            </nav>
+            {% else %}
+            <p class="text-muted">No reports found {% if user_role == 'Supervisor' %}in your department{% endif %}.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

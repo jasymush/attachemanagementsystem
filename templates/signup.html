@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <div class="card-body">
+                <h2 class="card-title text-center mb-4 fw-bold text-success">Create Your Account</h2>
+                <form method="POST" action="{{ url_for('auth.signup') }}" class="needs-validation" novalidate>
+                    {{ form.csrf_token }} {# CSRF Token #}
+                    <div class="mb-3">
+                        {{ render_field(form.full_name, class="form-control rounded-pill", placeholder="Full Name") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.phone_number, class="form-control rounded-pill", placeholder="Phone Number") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.email, class="form-control rounded-pill", placeholder="Email Address") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.institution, class="form-control rounded-pill", placeholder="Institution") }}
+                    </div>
+                    <div class="mb-3">
+                        <div class="input-group">
+                            {{ render_field(form.password, class="form-control rounded-start-pill", placeholder="Password", id="passwordInput") }}
+                            <button type="button" id="togglePasswordVisibilitySignup" class="btn btn-outline-secondary rounded-end-pill" aria-label="Toggle password visibility">
+                                <i class="fas fa-eye-slash"></i>
+                            </button>
+                        </div>
+                        {# Password strength feedback display #}
+                        <div id="passwordStrength" class="mt-2 text-sm"></div>
+                        {# NEW: Static list for password requirements feedback #}
+                        <ul class="text-sm mt-1 list-unstyled">
+                            <li id="lengthRequirement"><i class="fas fa-times-circle me-1"></i> At least 8 characters</li>
+                            <li id="caseRequirement"><i class="fas fa-times-circle me-1"></i> Uppercase and lowercase letters</li>
+                            <li id="numberRequirement"><i class="fas fa-times-circle me-1"></i> A number</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.confirm_password, class="form-control rounded-pill", placeholder="Confirm Password") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.role, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.department, class="form-select rounded-pill") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">{{ form.ministry_rating.label.text }}</label>
+                        <div class="rating-stars">
+                            {# Manually render radio buttons for custom star styling #}
+                            <input type="radio" id="star5" name="{{ form.ministry_rating.name }}" value="5" {% if form.ministry_rating.data == 5 %}checked{% endif %}><label for="star5" title="5 stars">&#9733;</label>
+                            <input type="radio" id="star4" name="{{ form.ministry_rating.name }}" value="4" {% if form.ministry_rating.data == 4 %}checked{% endif %}><label for="star4" title="4 stars">&#9733;</label>
+                            <input type="radio" id="star3" name="{{ form.ministry_rating.name }}" value="3" {% if form.ministry_rating.data == 3 %}checked{% endif %}><label for="star3" title="3 stars">&#9733;</label>
+                            <input type="radio" id="star2" name="{{ form.ministry_rating.name }}" value="2" {% if form.ministry_rating.data == 2 %}checked{% endif %}><label for="star2" title="2 stars">&#9733;</label>
+                            <input type="radio" id="star1" name="{{ form.ministry_rating.name }}" value="1" {% if form.ministry_rating.data == 1 %}checked{% endif %}><label for="star1" title="1 star">&#9733;</label>
+                        </div>
+                        {% if form.ministry_rating.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.ministry_rating.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">Sign Up</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="text-success fw-bold">Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// JavaScript for Bootstrap form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+
+// Password Strength Indicator with detailed feedback
+document.addEventListener('DOMContentLoaded', function() {
+    const passwordInput = document.getElementById('passwordInput');
+    const passwordStrength = document.getElementById('passwordStrength');
+    // NEW: Get individual requirement elements
+    const lengthRequirement = document.getElementById('lengthRequirement');
+    const caseRequirement = document.getElementById('caseRequirement');
+    const numberRequirement = document.getElementById('numberRequirement');
+
+    function updateRequirement(element, isMet) {
+        const icon = element.querySelector('i');
+        if (isMet) {
+            icon.classList.remove('fa-times-circle', 'text-danger');
+            icon.classList.add('fa-check-circle', 'text-success');
+            element.classList.remove('text-danger');
+            element.classList.add('text-success');
+        } else {
+            icon.classList.remove('fa-check-circle', 'text-success');
+            icon.classList.add('fa-times-circle', 'text-danger');
+            element.classList.remove('text-success');
+            element.classList.add('text-danger');
+        }
+    }
+
+    if (passwordInput && passwordStrength && lengthRequirement && caseRequirement && numberRequirement) {
+        passwordInput.addEventListener('input', function() {
+            const password = passwordInput.value;
+            let strength = 0;
+            let feedback = '';
+            let color = '';
+
+            const hasLength = password.length >= 8;
+            const hasMixedCase = password.match(/[a-z]/) && password.match(/[A-Z]/);
+            const hasNumber = password.match(/\d/);
+
+            updateRequirement(lengthRequirement, hasLength);
+            updateRequirement(caseRequirement, hasMixedCase);
+            updateRequirement(numberRequirement, hasNumber);
+
+            if (hasLength) strength += 1;
+            if (hasMixedCase) strength += 1;
+            if (hasNumber) strength += 1;
+
+            if (password.length === 0) { // If password is empty, reset everything
+                feedback = '';
+                color = '';
+                updateRequirement(lengthRequirement, false);
+                updateRequirement(caseRequirement, false);
+                updateRequirement(numberRequirement, false);
+            } else if (strength === 0) {
+                feedback = 'Too Short';
+                color = 'text-danger';
+            } else if (strength <= 1) {
+                feedback = 'Weak';
+                color = 'text-danger';
+            } else if (strength === 2) {
+                feedback = 'Medium';
+                color = 'text-warning';
+            } else { // strength === 3
+                feedback = 'Strong';
+                color = 'text-success';
+            }
+
+            passwordStrength.textContent = feedback;
+            passwordStrength.className = `mt-2 text-sm ${color}`;
+        });
+    }
+
+    // Password Visibility Toggle for Signup
+    const togglePasswordButtonSignup = document.getElementById('togglePasswordVisibilitySignup');
+    if (togglePasswordButtonSignup) {
+        togglePasswordButtonSignup.addEventListener('click', function() {
+            const passwordInput = document.getElementById('passwordInput');
+            const icon = this.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                this.setAttribute('aria-label', 'Hide password');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                this.setAttribute('aria-label', 'Show password');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

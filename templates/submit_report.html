@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Submit Report{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card p-4 shadow-lg rounded-4">
+            <h2 class="card-title text-center mb-4 fw-bold text-success">Submit Your Report</h2>
+            <form method="POST" action="{{ url_for('main.submit_report') }}" class="needs-validation" novalidate>
+                {{ form.csrf_token }} {# CSRF Token #}
+                <div class="mb-3">
+                    {{ render_field(form.report_type, class="form-select rounded-pill", onchange="toggleReportFields()") }}
+                </div>
+
+                <div id="absentDaysFields" style="display: none;">
+                    <div class="mb-3">
+                        {# Added id for Flatpickr #}
+                        {{ render_field(form.start_date, class="form-control rounded-pill", id="startDatePicker") }}
+                    </div>
+                    <div class="mb-3">
+                        {# Added id for Flatpickr #}
+                        {{ render_field(form.end_date, class="form-control rounded-pill", id="endDatePicker") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ render_field(form.reason, class="form-control rounded-3", rows="3") }}
+                    </div>
+                </div>
+
+                <div id="complaintRecommendationFields" style="display: none;">
+                    <div class="mb-3">
+                        {{ render_field(form.subject, class="form-control rounded-pill", placeholder="Subject") }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    {{ render_field(form.details, class="form-control rounded-3", rows="5", placeholder="Details of your report...") }}
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill">Submit Report</button>
+                </div>
+            </form>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleReportFields() {
+        const reportTypeElement = document.getElementById('report_type');
+        if (!reportTypeElement) return; // Exit if element not found
+
+        const reportType = reportTypeElement.value;
+        const absentDaysFields = document.getElementById('absentDaysFields');
+        const complaintRecommendationFields = document.getElementById('complaintRecommendationFields');
+
+        if (absentDaysFields) {
+            absentDaysFields.style.display = 'none';
+        }
+        if (complaintRecommendationFields) {
+            complaintRecommendationFields.style.display = 'none';
+        }
+
+        // Reset required attributes for HTML5 validation if not using WTForms for client-side
+        if (absentDaysFields) {
+            absentDaysFields.querySelectorAll('input, textarea').forEach(el => el.removeAttribute('required'));
+        }
+        if (complaintRecommendationFields) {
+            complaintRecommendationFields.querySelectorAll('input').forEach(el => el.removeAttribute('required'));
+        }
+
+        if (reportType === 'absent_days') {
+            if (absentDaysFields) {
+                absentDaysFields.style.display = 'block';
+            }
+            // Initialize Flatpickr for date fields when they become visible
+            flatpickr("#startDatePicker", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "F j, Y",
+                allowInput: true,
+                appendTo: document.body // To prevent clipping in modals/small containers
+            });
+            flatpickr("#endDatePicker", {
+                dateFormat: "Y-m-d",
+                altInput: true,
+                altFormat: "F j, Y",
+                allowInput: true,
+                appendTo: document.body
+            });
+        } else if (reportType === 'complaint' || reportType === 'recommendation') {
+            if (complaintRecommendationFields) {
+                complaintRecommendationFields.style.display = 'block';
+            }
+        }
+    }
+
+    // JavaScript for Bootstrap form validation
+    (function () {
+      'use strict'
+      var forms = document.querySelectorAll('.needs-validation')
+      Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+          form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+          }, false)
+        })
+    })()
+
+    // Call on page load to set initial state and initialize date pickers if needed
+    document.addEventListener('DOMContentLoaded', toggleReportFields);
+</script>
+{% endblock %}

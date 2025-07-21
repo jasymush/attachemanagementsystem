@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <h2 class="card-title text-center mb-4 fw-bold text-success">About Attaches Management System</h2>
+            <div class="card-body text-center">
+                <p class="lead">
+                    The Attaches Management System (AMS) is designed to streamline the management of attachees within the Ministry.
+                    It provides a centralized platform for attachees to submit reports, complaints, and recommendations,
+                    while enabling supervisors and directors to monitor progress and manage departmental information effectively.
+                </p>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check-circle text-success me-2"></i> Role-based User Authentication</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i> Attachee Report Submission (Days Absent, Complaints, Recommendations)</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i> Supervisor/Director Dashboard for Oversight</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i> User-friendly Interface with Theme Customization</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i> Secure Data Storage with PostgreSQL and SQLAlchemy</li>
+                </ul>
+                <p class="mt-4">
+                    Developed with Flask, HTML, CSS, and Bootstrap.
+                </p>
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Account Details{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <h2 class="card-title text-center mb-4 fw-bold text-success">Edit Account Details</h2>
+            <form method="POST" action="{{ url_for('main.account') }}" class="needs-validation" novalidate>
+                {{ form.csrf_token }} {# CSRF Token #}
+                {{ form.original_email(type="hidden", value=user.email) }} {# Hidden field to pass original email for validation #}
+
+                <div class="mb-3">
+                    {{ render_field(form.full_name, class="form-control rounded-pill", placeholder="Full Name") }}
+                </div>
+                <div class="mb-3">
+                    {{ render_field(form.phone_number, class="form-control rounded-pill", placeholder="Phone Number") }}
+                </div>
+                <div class="mb-3">
+                    {{ render_field(form.email, class="form-control rounded-pill", placeholder="Email Address") }}
+                </div>
+                <div class="mb-3">
+                    {{ render_field(form.institution, class="form-control rounded-pill", placeholder="Institution") }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <input type="text" class="form-control rounded-pill" value="{{ user.role }}" readonly disabled>
+                    <small class="form-text text-muted">Your role cannot be changed here. Contact an administrator.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Department</label>
+                    <input type="text" class="form-control rounded-pill" value="{{ user.department }}" readonly disabled>
+                    <small class="form-text text-muted">Your department cannot be changed here. Contact an administrator.</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-block">{{ form.ministry_rating.label.text }}</label>
+                    <div class="rating-stars">
+                        {# Manually render radio buttons for custom star styling #}
+                        <input type="radio" id="star5" name="{{ form.ministry_rating.name }}" value="5" {% if form.ministry_rating.data == 5 %}checked{% endif %}><label for="star5" title="5 stars">&#9733;</label>
+                        <input type="radio" id="star4" name="{{ form.ministry_rating.name }}" value="4" {% if form.ministry_rating.data == 4 %}checked{% endif %}><label for="star4" title="4 stars">&#9733;</label>
+                        <input type="radio" id="star3" name="{{ form.ministry_rating.name }}" value="3" {% if form.ministry_rating.data == 3 %}checked{% endif %}><label for="star3" title="3 stars">&#9733;</label>
+                        <input type="radio" id="star2" name="{{ form.ministry_rating.name }}" value="2" {% if form.ministry_rating.data == 2 %}checked{% endif %}><label for="star2" title="2 stars">&#9733;</label>
+                        <input type="radio" id="star1" name="{{ form.ministry_rating.name }}" value="1" {% if form.ministry_rating.data == 1 %}checked{% endif %}><label for="star1" title="1 star">&#9733;</label>
+                    </div>
+                    {% if form.ministry_rating.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.ministry_rating.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill">Update Details</button>
+                </div>
+            </form>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// JavaScript for Bootstrap form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}

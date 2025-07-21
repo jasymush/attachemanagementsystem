@@ -1,0 +1,254 @@
+/* Custom CSS for Attaches Management System */
+
+/* Inter Font */
+body {
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+/* Light Theme (Default) */
+body.light-theme {
+    background-color: #f8f9fa; /* Light gray background */
+    color: #343a40; /* Dark text */
+}
+
+body.light-theme .navbar {
+    background-color: #ffffff !important; /* White navbar */
+    border-bottom: 1px solid #e0e0e0;
+}
+
+body.light-theme .card {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .form-control,
+body.light-theme .form-select {
+    background-color: #f0f0f0;
+    border: 1px solid #ced4da;
+    color: #495057;
+}
+
+body.light-theme .btn-outline-success {
+    color: #28a745;
+    border-color: #28a745;
+}
+body.light-theme .btn-outline-success:hover {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Dark Theme */
+body.dark-theme {
+    background-color: #2c3e50; /* Dark blue-gray background */
+    color: #ecf0f1; /* Lighter text for better visibility in dark mode */
+}
+
+body.dark-theme .navbar {
+    background-color: #34495e !important; /* Darker blue-gray navbar */
+    border-bottom: 1px solid #4a627a;
+}
+
+body.dark-theme .card {
+    background-color: #34495e;
+    border: 1px solid #4a627a;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .form-control,
+body.dark-theme .form-select {
+    background-color: #4a627a;
+    border: 1px solid #5d748f;
+    color: #ecf0f1; /* Lighter text for form controls */
+}
+
+body.dark-theme .form-control::placeholder { /* For placeholder text */
+    color: #bdc3c7;
+}
+
+body.dark-theme .btn-outline-success {
+    color: #2ecc71; /* Green for dark theme */
+    border-color: #2ecc71;
+}
+body.dark-theme .btn-outline-success:hover {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+/* NEW: Styles for Navbar links and buttons in dark theme for better visibility */
+body.dark-theme .navbar-nav .nav-link {
+    color: #ecf0f1 !important; /* Lighter text for navigation links */
+}
+
+body.dark-theme .navbar-nav .nav-link.btn-outline-info {
+    color: #87ceeb !important; /* Lighter blue for settings button */
+    border-color: #87ceeb !important;
+}
+
+body.dark-theme .navbar-nav .nav-link.btn-outline-info:hover {
+    background-color: #87ceeb !important;
+    color: #34495e !important;
+}
+
+body.dark-theme .navbar-nav .nav-link.btn-outline-danger {
+    color: #ff6b6b !important; /* Lighter red for logout button */
+    border-color: #ff6b6b !important;
+}
+
+body.dark-theme .navbar-nav .nav-link.btn-outline-danger:hover {
+    background-color: #ff6b6b !important;
+    color: #34495e !important;
+}
+
+body.dark-theme #themeToggle {
+    color: #ecf0f1 !important; /* Lighter text for toggle theme button */
+    border-color: #ecf0f1 !important;
+}
+
+body.dark-theme #themeToggle:hover {
+    background-color: #ecf0f1 !important;
+    color: #34495e !important;
+}
+
+/* Common Styles */
+.card {
+    border-radius: 15px;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    padding: 10px 15px;
+}
+
+.btn {
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #28a745; /* Green */
+    border-color: #28a745;
+}
+.btn-primary:hover {
+    background-color: #218838; /* Darker green */
+    border-color: #1e7e34;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+.btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+}
+.btn-info:hover {
+    background-color: #138496;
+    border-color: #117a8b;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* Flash messages */
+.alert {
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+/* Star rating */
+.rating-stars {
+    display: inline-block;
+}
+
+.rating-stars input[type="radio"] {
+    display: none;
+}
+
+.rating-stars label {
+    font-size: 1.5rem;
+    color: #ccc;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-stars label:hover,
+.rating-stars label:hover ~ label,
+.rating-stars input[type="radio"]:checked ~ label {
+    color: #ffc107; /* Gold color for stars */
+}
+
+/* Specific styling for dashboard elements */
+.dashboard-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border-radius: 15px;
+    background-color: var(--card-bg-color, #ffffff); /* Use CSS variables for theme */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-theme .dashboard-section {
+    background-color: var(--card-bg-color-dark, #34495e);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-theme .dashboard-section h3 {
+    color: #87ceeb; /* Lighter blue for section titles in dark mode */
+}
+
+
+.table {
+    border-radius: 10px;
+    overflow: hidden; /* Ensures rounded corners apply to table content */
+}
+
+body.dark-theme .table {
+    color: #ecf0f1;
+}
+
+body.dark-theme .table th,
+body.dark-theme .table td {
+    border-color: #4a627a;
+}
+
+body.dark-theme .table-striped tbody tr:nth-of-type(odd) {
+    background-color: #3f5870;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand span {
+        font-size: 1rem;
+    }
+    .navbar-nav .nav-link {
+        margin-right: 0 !important;
+        margin-bottom: 5px;
+    }
+    .navbar-nav .nav-item:last-child .nav-link {
+        margin-bottom: 0;
+    }
+    .btn {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+}
