@@ -24,15 +24,26 @@
                         {{ render_field(form.institution, class="form-control rounded-pill", placeholder="Institution") }}
                     </div>
                     <div class="mb-3">
+                        {# NEW: Removed render_field for password and manually created the input group #}
+                        {# This allows us to control the label placement or absence #}
+                        <label for="passwordInput" class="form-label visually-hidden">Password</label> {# Visually hidden label for accessibility #}
                         <div class="input-group">
-                            {{ render_field(form.password, class="form-control rounded-start-pill", placeholder="Password", id="passwordInput") }}
+                            <input type="password" class="form-control rounded-start-pill" id="passwordInput" name="{{ form.password.name }}" placeholder="Password" required>
                             <button type="button" id="togglePasswordVisibilitySignup" class="btn btn-outline-secondary rounded-end-pill" aria-label="Toggle password visibility">
                                 <i class="fas fa-eye-slash"></i>
                             </button>
                         </div>
+                        {# Display WTForms errors for password field #}
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.password.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                         {# Password strength feedback display #}
                         <div id="passwordStrength" class="mt-2 text-sm"></div>
-                        {# NEW: Static list for password requirements feedback #}
+                        {# Static list for password requirements feedback #}
                         <ul class="text-sm mt-1 list-unstyled">
                             <li id="lengthRequirement"><i class="fas fa-times-circle me-1"></i> At least 8 characters</li>
                             <li id="caseRequirement"><i class="fas fa-times-circle me-1"></i> Uppercase and lowercase letters</li>
@@ -98,7 +109,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('passwordInput');
     const passwordStrength = document.getElementById('passwordStrength');
-    // NEW: Get individual requirement elements
     const lengthRequirement = document.getElementById('lengthRequirement');
     const caseRequirement = document.getElementById('caseRequirement');
     const numberRequirement = document.getElementById('numberRequirement');
@@ -137,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hasMixedCase) strength += 1;
             if (hasNumber) strength += 1;
 
-            if (password.length === 0) { // If password is empty, reset everything
+            if (password.length === 0) {
                 feedback = '';
                 color = '';
                 updateRequirement(lengthRequirement, false);
@@ -152,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (strength === 2) {
                 feedback = 'Medium';
                 color = 'text-warning';
-            } else { // strength === 3
+            } else {
                 feedback = 'Strong';
                 color = 'text-success';
             }
@@ -162,7 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Password Visibility Toggle for Signup
     const togglePasswordButtonSignup = document.getElementById('togglePasswordVisibilitySignup');
     if (togglePasswordButtonSignup) {
         togglePasswordButtonSignup.addEventListener('click', function() {
