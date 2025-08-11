@@ -1,12 +1,16 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import login_user, logout_user, current_user, login_required
-from models import db, User, Report
-from werkzeug.security import generate_password_hash, check_password_hash
-import datetime
-from forms import LoginForm, RegistrationForm, ReportForm, EditUserForm, AccountEditForm, ForgotPasswordForm, ResetPasswordForm
 from flask_mail import Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature, BadSignature
+import datetime
 import time
+
+# NEW: Import for explicit join conditions
+from sqlalchemy import or_
+
+# Import models and forms from your project
+from models import db, User, Report
+from forms import LoginForm, RegistrationForm, ReportForm, EditUserForm, AccountEditForm, ForgotPasswordForm, ResetPasswordForm, ReportReviewForm
 
 # Define blueprints for modularity
 auth_bp = Blueprint('auth', __name__)
@@ -23,7 +27,7 @@ def login():
         return redirect(url_for('main.dashboard'))
 
     form = LoginForm()
-    if form.validate_on_submit(): # This handles POST request validation
+    if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
         role = form.role.data
@@ -33,7 +37,6 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and user.check_password(password):
-            # Check if account is active
             if not user.is_active:
                 flash('Your account is awaiting administrator approval. Please contact your department head for activation.', 'warning')
                 return redirect(url_for('auth.login'))
@@ -46,7 +49,7 @@ def login():
                 flash('Role or Department mismatch. Please select your registered role and department.', 'danger')
         else:
             flash('Invalid email or password. Please try again.', 'danger')
-    elif request.method == 'POST': # If form submission failed validation
+    elif request.method == 'POST':
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Validation Error in {field.replace('_', ' ').title()}: {error}", 'danger')
@@ -64,7 +67,7 @@ def signup():
         return redirect(url_for('main.dashboard'))
 
     form = RegistrationForm()
-    if form.validate_on_submit(): # This handles POST request validation
+    if form.validate_on_submit():
         full_name = form.full_name.data
         phone_number = form.phone_number.data
         email = form.email.data
@@ -82,15 +85,15 @@ def signup():
             role=role,
             department=department,
             ministry_rating=int(ministry_rating) if ministry_rating else 0,
-            is_active=False # Account is inactive by default
+            is_active=False
         )
-        new_user.set_password(password) # Hash the password
+        new_user.set_password(password)
 
         db.session.add(new_user)
         db.session.commit()
         flash(f'Account for {full_name} created successfully! It is now awaiting administrator approval.', 'success')
         return redirect(url_for('auth.login'))
-    elif request.method == 'POST': # If form submission failed validation
+    elif request.method == 'POST':
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Validation Error in {field.replace('_', ' ').title()}: {error}", 'danger')
@@ -118,27 +121,22 @@ def dashboard():
     search_query = request.args.get('search_query', '').strip()
     users_page = request.args.get('users_page', 1, type=int)
     reports_page = request.args.get('reports_page', 1, type=int)
-    per_page = 10 # Number of items per page
+    per_page = 10
 
     if user_role == 'Attachee':
-        # Attachee dashboard: show forms for submitting reports and their own reports
+        # Fetch reports for the current attachee
         attachee_reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.date_submitted.desc()).all()
-        report_form = ReportForm() # Instantiate ReportForm for Attachee dashboard
-        return render_template('dashboard.html', user_role=user_role, attachee_reports=attachee_reports, form=report_form) # Pass the form
+        report_form = ReportForm() # Form for submitting new reports
+        return render_template('dashboard.html', user_role=user_role, attachee_reports=attachee_reports, form=report_form)
     
     elif user_role in ['Supervisor', 'Director']:
-        # Admins dashboard: view all users, reports, ratings, comments
-        # Filtering and search for users
         users_query = User.query
         
-        # LOGIC FOR ICT DEPARTMENT ACCESS FOR USERS
-        # If the user is an ICT Supervisor or ICT Director, they can view all users.
-        # Otherwise, Supervisors/Directors can only view users in their own department.
+        # Supervisors/Directors can only see users in their department, unless they are ICT admin
         if not (user_role in ['Supervisor', 'Director'] and user_department == 'ICT'):
             users_query = users_query.filter_by(department=user_department)
 
         if search_query:
-            # Simple search across full_name, email, institution, role, department
             search_pattern = f"%{search_query}%"
             users_query = users_query.filter(
                 (User.full_name.ilike(search_pattern)) |
@@ -148,35 +146,43 @@ def dashboard():
                 (User.department.ilike(search_pattern))
             )
         
-        # Paginate users
         paginated_users = users_query.paginate(page=users_page, per_page=per_page, error_out=False)
         all_users = paginated_users.items
 
-        # Filtering and search for reports
-        reports_query = Report.query.join(User) # Join with User to filter by department
+        # MODIFIED: Explicitly define joins to avoid AmbiguousForeignKeysError
+        # Join Report with User (as author) for filtering
+        reports_query = Report.query.join(Report.author)
         
-        # ALL Supervisors and Directors see only reports in their department
+        # Supervisors/Directors can only see reports from their department
         if user_role in ['Supervisor', 'Director']:
-            reports_query = reports_query.filter(User.department == user_department)
+            reports_query = reports_query.filter(Report.author.has(department=user_department))
         
         if search_query:
-            # Simple search across report details, subject, and attachee name
             search_pattern = f"%{search_query}%"
+            # Use OR to search across different fields, including joined relationships
             reports_query = reports_query.filter(
                 (Report.details.ilike(search_pattern)) |
                 (Report.subject.ilike(search_pattern)) |
                 (Report.reason.ilike(search_pattern)) |
-                (User.full_name.ilike(search_pattern))
+                (Report.author.has(User.full_name.ilike(search_pattern))) | # Search by author's name
+                (Report.reviewer.has(User.full_name.ilike(search_pattern))) # Search by reviewer's name
             )
         
-        # Paginate reports
+        # Efficiently load both author and reviewer without separate joins that cause ambiguity
+        # The joins are already handled by the filters and relationship loading below
+        reports_query = reports_query.options(db.joinedload(Report.author), db.joinedload(Report.reviewer))
+
         paginated_reports = reports_query.order_by(Report.date_submitted.desc()).paginate(page=reports_page, per_page=per_page, error_out=False)
         all_reports = paginated_reports.items
+        
+        # Pass an empty ReportReviewForm instance for the template
+        review_form = ReportReviewForm()
 
         return render_template('dashboard.html', user_role=user_role,
                                paginated_users=paginated_users, all_users=all_users,
                                paginated_reports=paginated_reports, all_reports=all_reports,
-                               user_department=user_department, search_query=search_query)
+                               user_department=user_department, search_query=search_query,
+                               review_form=review_form) # Pass review_form to template
     else:
         flash('Unknown role. Please contact administrator.', 'danger')
         logout_user()
@@ -199,12 +205,10 @@ def activate_user(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('main.dashboard'))
 
-    # Prevent activating self
     if user_to_activate.id == current_user.id:
-        flash('You cannot activate your own account.', 'warning') # Changed to warning
+        flash('You cannot activate your own account.', 'warning')
         return redirect(url_for('main.dashboard'))
 
-    # Check permissions based on department
     is_ict_admin = (current_user.role in ['Supervisor', 'Director'] and current_user.department == 'ICT')
     is_same_department_admin = (current_user.role in ['Supervisor', 'Director'] and user_to_activate.department == current_user.department)
 
@@ -243,13 +247,13 @@ def submit_report():
             subject=form.subject.data,
             start_date=form.start_date.data,
             end_date=form.end_date.data,
-            reason=form.reason.data
+            reason=form.reason.data,
+            status='Pending' # Set initial status to Pending
         )
         db.session.add(new_report)
         db.session.commit()
-        flash(f'Report "{new_report.subject or new_report.report_type.replace("_", " ").title()}" submitted successfully by {current_user.full_name}!', 'success')
+        flash(f'Report "{new_report.subject or new_report.report_type.replace("_", " ").title()}" submitted successfully by {current_user.full_name}! It is now pending review.', 'success')
 
-        # Email Notification Logic: Send to Supervisors only in the attachee's department
         department_supervisors = User.query.filter(
             User.department == current_user.department,
             User.role == 'Supervisor'
@@ -270,8 +274,9 @@ A new report has been submitted by {current_user.full_name} ({current_user.depar
 Report Type: {new_report.report_type.replace('_', ' ').title()}
 Details: {new_report.details}
 Date Submitted: {new_report.date_submitted.strftime('%Y-%m-%d %H:%M')}
+Current Status: {new_report.status}
 
-Please log in to the Attaches Management System to review it.
+Please log in to the Attaches Management System to review it: {url_for('auth.login', _external=True)}
 
 Regards,
 Attaches Management System
@@ -286,12 +291,85 @@ Attaches Management System
             flash('No department supervisors found to send notification.', 'warning')
 
         return redirect(url_for('main.dashboard'))
-    elif request.method == 'POST': # If form submission failed validation
+    elif request.method == 'POST':
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Validation Error in {field.replace('_', ' ').title()}: {error}", 'danger')
     
     return render_template('submit_report.html', form=form)
+
+@main_bp.route('/report/<int:report_id>/review', methods=['GET', 'POST'])
+@login_required
+def review_report(report_id):
+    """
+    Allows Supervisors/Directors to review a submitted report (approve/deny) and provide feedback.
+    """
+    report_to_review = db.session.get(Report, report_id)
+    if not report_to_review:
+        flash('Report not found.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
+    # Permission check: Only supervisors/directors from the same department OR ICT admin
+    is_ict_admin = (current_user.role in ['Supervisor', 'Director'] and current_user.department == 'ICT')
+    is_same_department_reviewer = (current_user.role in ['Supervisor', 'Director'] and report_to_review.author.department == current_user.department)
+
+    if not (is_ict_admin or is_same_department_reviewer):
+        flash('You do not have permission to review this report.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
+    # Prevent reviewing already reviewed reports by non-ICT supervisors if not from their department.
+    # ICT admins can always view/re-review.
+    if report_to_review.status != 'Pending' and not is_ict_admin:
+        flash('This report has already been reviewed and cannot be changed by you.', 'warning')
+        return redirect(url_for('main.dashboard'))
+
+    form = ReportReviewForm(obj=report_to_review)
+    form.report_id.data = report_to_review.id # Ensure hidden field is populated
+
+    if form.validate_on_submit():
+        report_to_review.status = form.status.data
+        report_to_review.supervisor_feedback = form.supervisor_feedback.data
+        report_to_review.reviewed_by_id = current_user.id
+        report_to_review.reviewed_at = datetime.datetime.utcnow()
+        db.session.commit()
+        
+        flash(f'Report by {report_to_review.author.full_name} has been {report_to_review.status.lower()}!', 'success')
+
+        # Send email notification to the attachee
+        try:
+            msg = Message(f"Your Report '{report_to_review.subject or report_to_review.report_type.replace('_', ' ').title()}' Has Been Reviewed",
+                          recipients=[report_to_review.author.email],
+                          sender=current_app.config['MAIL_DEFAULT_SENDER'])
+            msg.body = f"""
+Dear {report_to_review.author.full_name},
+
+Your report '{report_to_review.subject or report_to_review.report_type.replace('_', ' ').title()}' has been reviewed.
+
+Status: {report_to_review.status}
+Reviewed by: {current_user.full_name} ({current_user.role}, {current_user.department})
+Reviewed at: {report_to_review.reviewed_at.strftime('%Y-%m-%d %H:%M')}
+
+Feedback:
+{report_to_review.supervisor_feedback if report_to_review.supervisor_feedback else 'No specific feedback provided.'}
+
+Please log in to the Attaches Management System to view your dashboard: {url_for('auth.login', _external=True)}
+
+Regards,
+Attaches Management System
+"""
+            current_app.extensions['mail'].send(msg)
+            flash(f'Notification email sent to {report_to_review.author.full_name} regarding their report review.', 'info')
+        except Exception as e:
+            flash(f'Failed to send notification email to attachee: {e}', 'warning')
+
+        return redirect(url_for('main.dashboard'))
+    elif request.method == 'POST':
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Validation Error in {field.replace('_', ' ').title()}: {error}", 'danger')
+
+    return render_template('review_report.html', report=report_to_review, form=form)
+
 
 @main_bp.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
@@ -309,7 +387,6 @@ def edit_user(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('main.dashboard'))
 
-    # Supervisors can only edit users in their department, Directors can edit anyone
     if current_user.role == 'Supervisor' and user_to_edit.department != current_user.department:
         flash('You can only edit users within your department.', 'danger')
         return redirect(url_for('main.dashboard'))
@@ -344,17 +421,15 @@ def delete_user(user_id):
         flash('User not found.', 'danger')
         return redirect(url_for('main.dashboard'))
 
-    # Prevent deleting self
     if user_to_delete.id == current_user.id:
-        flash('You cannot delete your own account.', 'warning') # Changed to warning
+        flash('You cannot delete your own account.', 'warning')
         return redirect(url_for('main.dashboard'))
 
-    # Supervisors can only delete users in their department, Directors can delete anyone
     if current_user.role == 'Supervisor' and user_to_delete.department != current_user.department:
         flash('You can only delete users within your department.', 'danger')
         return redirect(url_for('main.dashboard'))
 
-    # Delete associated reports first to avoid foreign key constraints
+    # Delete associated reports first due to foreign key constraints
     Report.query.filter_by(user_id=user_id).delete()
     
     db.session.delete(user_to_delete)
@@ -363,30 +438,38 @@ def delete_user(user_id):
     return redirect(url_for('main.dashboard'))
 
 
-@main_bp.route('/delete_report/<int:report_id>', methods=['POST'])
+@main_bp.route('/report/<int:report_id>/delete', methods=['POST'])
 @login_required
 def delete_report(report_id):
     """
-    Allows Supervisors/Directors to delete reports.
+    Allows attachees to delete their own pending reports,
+    and Supervisors/Directors to delete any report in their department.
     """
-    if current_user.role not in ['Supervisor', 'Director']:
-        flash('You do not have permission to delete reports.', 'danger')
-        return redirect(url_for('main.dashboard'))
-
     report_to_delete = db.session.get(Report, report_id)
     if not report_to_delete:
         flash('Report not found.', 'danger')
         return redirect(url_for('main.dashboard'))
 
-    # Supervisors can only delete reports from their department's attachees
-    if current_user.role == 'Supervisor' and report_to_delete.author.department != current_user.department:
-        flash('You can only delete reports from your department.', 'danger')
+    # Check permissions
+    is_attachee_owner = (current_user.role == 'Attachee' and report_to_delete.user_id == current_user.id)
+    is_supervisor_or_director_in_department = (current_user.role in ['Supervisor', 'Director'] and report_to_delete.author.department == current_user.department)
+    is_ict_admin = (current_user.role in ['Supervisor', 'Director'] and current_user.department == 'ICT')
+
+    if not (is_attachee_owner or is_supervisor_or_director_in_department or is_ict_admin):
+        flash('You do not have permission to delete this report.', 'danger')
         return redirect(url_for('main.dashboard'))
+    
+    # Specific rule: Attachees can only delete PENDING reports
+    if is_attachee_owner and report_to_delete.status != 'Pending':
+        flash('You can only delete reports that are still pending review.', 'danger')
+        return redirect(url_for('main.dashboard'))
+
 
     db.session.delete(report_to_delete)
     db.session.commit()
     flash(f'Report "{report_to_delete.subject or report_to_delete.report_type.replace("_", " ").title()}" deleted successfully!', 'success')
     return redirect(url_for('main.dashboard'))
+
 
 @main_bp.route('/account', methods=['GET', 'POST'])
 @login_required
@@ -421,16 +504,13 @@ def forgot_password():
         email = form.email.data
         user = User.query.filter_by(email=email).first()
         if user:
-            # Generate a unique token using itsdangerous
             s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
             token = s.dumps({'user_id': user.id}, salt='password-reset-salt')
             
-            # Store the token and its timestamp in the user's record
             user.reset_token = token
             user.reset_token_timestamp = datetime.datetime.utcnow()
             db.session.commit()
 
-            # Send email with the reset link
             try:
                 msg = Message("Password Reset Request for Attaches Management System",
                               recipients=[email],
@@ -438,7 +518,6 @@ def forgot_password():
                 msg.html = f"""
 <p>Dear {user.full_name},</p>
 <p>You have requested a password reset for your Attaches Management System account.</p>
-<p>To reset your password, please click on the following link:</p>
 <p><a href="{url_for('auth.reset_password', token=token, _external=True)}">Reset Password Link</a></p>
 <p>This link is valid for 1 hour.</p>
 <p>If you did not make this request then please ignore this email and your password will remain unchanged.</p>
@@ -449,7 +528,6 @@ def forgot_password():
             except Exception as e:
                 flash(f'Failed to send password reset email to {email}: {e}', 'warning')
         else:
-            # Avoid revealing if email exists for security reasons
             flash('If that email is registered with us, a password reset link has been sent to it. Please check your inbox.', 'info')
         
         return redirect(url_for('auth.login'))
@@ -477,14 +555,12 @@ def reset_password(token):
         flash('Invalid user for password reset. Please request a new link.', 'danger')
         return redirect(url_for('auth.forgot_password'))
 
-    # Check token validity using timestamp (e.g., 1 hour)
     token_age_limit_seconds = 3600 # 1 hour
     if user.reset_token_timestamp is None or \
        (datetime.datetime.utcnow() - user.reset_token_timestamp).total_seconds() > token_age_limit_seconds:
         flash('The password reset link has expired. Please request a new one.', 'danger')
         return redirect(url_for('auth.forgot_password'))
 
-    # Check if the token matches the one stored in the database for single-use
     if user.reset_token != token:
         flash('This password reset link has already been used or is invalid. Please request a new one.', 'danger')
         return redirect(url_for('auth.forgot_password'))
@@ -493,10 +569,9 @@ def reset_password(token):
     if form.validate_on_submit():
         new_password = form.new_password.data
         
-        # Update user's password
         user.set_password(new_password)
-        user.reset_token = None # Clear the token after use
-        user.reset_token_timestamp = None # Clear the timestamp after use
+        user.reset_token = None
+        user.reset_token_timestamp = None
         db.session.commit()
         flash('Your password has been reset successfully! You can now log in with your new password.', 'success')
         return redirect(url_for('auth.login'))

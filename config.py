@@ -39,7 +39,7 @@ class Config:
     #    - IMPORTANT for Gmail: If you have 2-Factor Authentication (2FA) enabled,
     #      you MUST generate an "App Password" from your Google Account security settings
     #      and use that here, NOT your regular Gmail password.
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'cndg nxzm wftz biat'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'qmnd amzd chzp fjxc'
 
     # 6. MAIL_DEFAULT_SENDER: This is the email address that will appear as the "From" address.
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or 'moeamsystem@gmail.com'

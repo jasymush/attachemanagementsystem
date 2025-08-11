@@ -105,6 +105,11 @@
                             <th scope="col">Subject/Reason</th>
                             <th scope="col">Details</th>
                             <th scope="col">Date Submitted</th>
+                            <th scope="col">Status</th> {# NEW #}
+                            <th scope="col">Feedback</th> {# NEW #}
+                            <th scope="col">Reviewed By</th> {# NEW #}
+                            <th scope="col">Reviewed At</th> {# NEW #}
+                            <th scope="col">Actions</th> {# NEW #}
                         </tr>
                     </thead>
                     <tbody>
@@ -114,13 +119,37 @@
                             <td>{{ report.report_type | replace('_', ' ') | title }}</td>
                             <td>
                                 {% if report.report_type == 'absent_days' %}
-                                    {{ report.start_date }} to {{ report.end_date }} ({{ report.reason }})
+                                    {{ report.start_date.strftime('%Y-%m-%d') }} to {{ report.end_date.strftime('%Y-%m-%d') }} ({{ report.reason }})
                                 {% else %}
                                     {{ report.subject }}
                                 {% endif %}
                             </td>
                             <td>{{ report.details }}</td>
                             <td>{{ report.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                {% if report.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">{{ report.status }}</span>
+                                {% elif report.status == 'Approved' %}
+                                    <span class="badge bg-success">{{ report.status }}</span>
+                                {% elif report.status == 'Denied' %}
+                                    <span class="badge bg-danger">{{ report.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ report.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.supervisor_feedback or 'N/A' }}</td>
+                            <td>{{ report.reviewer.full_name if report.reviewer else 'N/A' }}</td>
+                            <td>{{ report.reviewed_at.strftime('%Y-%m-%d %H:%M') if report.reviewed_at else 'N/A' }}</td>
+                            <td>
+                                {# Attachee can only delete their own PENDING reports #}
+                                {% if report.status == 'Pending' %}
+                                <form action="{{ url_for('main.delete_report', report_id=report.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this report? This action cannot be undone.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -217,7 +246,7 @@
                             <th scope="col">Department</th>
                             <th scope="col">Institution</th>
                             <th scope="col">Ministry Rating</th>
-                            <th scope="col">Status</th> {# NEW: Status Column #}
+                            <th scope="col">Status</th>
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -257,7 +286,7 @@
                                 </form>
                                 {% endif %}
 
-                                {# NEW: Activate Button #}
+                                {# Activate Button for Supervisors/Directors #}
                                 {% if not user.is_active %}
                                     {% if (current_user.role in ['Supervisor', 'Director'] and current_user.department == 'ICT') or (current_user.department == user.department) %}
                                     <form action="{{ url_for('main.activate_user', user_id=user.id, users_page=paginated_users.page, reports_page=paginated_reports.page, search_query=search_query) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to activate this user?');">
@@ -267,7 +296,6 @@
                                     </form>
                                     {% endif %}
                                 {% endif %}
-                                {# END NEW #}
                             </td>
                         </tr>
                         {% endfor %}
@@ -316,6 +344,10 @@
                             <th scope="col">Subject/Reason</th>
                             <th scope="col">Details</th>
                             <th scope="col">Date Submitted</th>
+                            <th scope="col">Status</th> {# NEW #}
+                            <th scope="col">Feedback</th> {# NEW #}
+                            <th scope="col">Reviewed By</th> {# NEW #}
+                            <th scope="col">Reviewed At</th> {# NEW #}
                             <th scope="col">Actions</th>
                         </tr>
                     </thead>
@@ -327,7 +359,7 @@
                             <td>{{ report.report_type | replace('_', ' ') | title }}</td>
                             <td>
                                 {% if report.report_type == 'absent_days' %}
-                                    {{ report.start_date }} to {{ report.end_date }} ({{ report.reason }})
+                                    {{ report.start_date.strftime('%Y-%m-%d') }} to {{ report.end_date.strftime('%Y-%m-%d') }} ({{ report.reason }})
                                 {% else %}
                                     {{ report.subject }}
                                 {% endif %}
@@ -335,7 +367,26 @@
                             <td>{{ report.details }}</td>
                             <td>{{ report.date_submitted.strftime('%Y-%m-%d %H:%M') }}</td>
                             <td>
-                                <form action="{{ url_for('main.delete_report', report_id=report.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this report?');">
+                                {% if report.status == 'Pending' %}
+                                    <span class="badge bg-warning text-dark">{{ report.status }}</span>
+                                {% elif report.status == 'Approved' %}
+                                    <span class="badge bg-success">{{ report.status }}</span>
+                                {% elif report.status == 'Denied' %}
+                                    <span class="badge bg-danger">{{ report.status }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ report.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.supervisor_feedback or 'N/A' }}</td>
+                            <td>{{ report.reviewer.full_name if report.reviewer else 'N/A' }}</td>
+                            <td>{{ report.reviewed_at.strftime('%Y-%m-%d %H:%M') if report.reviewed_at else 'N/A' }}</td>
+                            <td>
+                                {% if report.status == 'Pending' %}
+                                <a href="{{ url_for('main.review_report', report_id=report.id) }}" class="btn btn-sm btn-outline-info rounded-pill me-1">
+                                    <i class="fas fa-search"></i> Review
+                                </a>
+                                {% endif %}
+                                <form action="{{ url_for('main.delete_report', report_id=report.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this report?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">
                                         <i class="fas fa-trash"></i> Delete
                                     </button>

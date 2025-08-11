@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_field %}
+
+{% block title %}Review Report{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 col-lg-7">
+        <div class="card p-4 shadow-lg rounded-4">
+            <h2 class="card-title text-center mb-4 fw-bold text-success">Review Report</h2>
+            <div class="card-body">
+                <p><strong>Attachee:</strong> {{ report.author.full_name }}</p>
+                <p><strong>Department:</strong> {{ report.author.department }}</p>
+                <p><strong>Report Type:</strong> {{ report.report_type | replace('_', ' ') | title }}</p>
+                {% if report.report_type == 'absent_days' %}
+                    <p><strong>Dates:</strong> {{ report.start_date.strftime('%Y-%m-%d') }} to {{ report.end_date.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Reason:</strong> {{ report.reason }}</p>
+                {% else %}
+                    <p><strong>Subject:</strong> {{ report.subject }}</p>
+                {% endif %}
+                <p><strong>Details:</strong> {{ report.details }}</p>
+                <p><strong>Date Submitted:</strong> {{ report.date_submitted.strftime('%Y-%m-%d %H:%M') }}</p>
+                <hr>
+                
+                <h4 class="mb-3 text-primary">Review Actions</h4>
+                <form method="POST" action="{{ url_for('main.review_report', report_id=report.id) }}" class="needs-validation" novalidate>
+                    {{ form.csrf_token }}
+                    {{ form.report_id(type="hidden") }} {# Hidden field to ensure report_id is submitted #}
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Set Status</label>
+                        {{ form.status(class="form-select rounded-pill") }}
+                        {% if form.status.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.status.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="supervisor_feedback" class="form-label">Feedback to Attachee</label>
+                        {{ form.supervisor_feedback(class="form-control rounded-3", rows="4", placeholder="Provide feedback to the attachee...") }}
+                        {% if form.supervisor_feedback.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.supervisor_feedback.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg rounded-pill">Submit Review</button>
+                    </div>
+                </form>
+            </div>
+            <div class="text-center mt-4">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-success rounded-pill px-4">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+// JavaScript for Bootstrap form validation
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+    .forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
+        form.classList.add('was-validated')
+      }, false)
+    })
+})()
+</script>
+{% endblock %}
